@@ -20,5 +20,5 @@ The functionality was tested under Windows 7 64-bit OS,
 8 GB of RAM, Intel(R) Core(TM) i7 CPU M620 @ 2.67 GHz,
 using GNU Octave 4.0.0.
 
-											Michal Mikolaj
-											mikolaj@gfz-potsdam.de
+										Michal Mikolaj
+										mikolaj@gfz-potsdam.de
