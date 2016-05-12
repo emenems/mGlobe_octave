@@ -247,7 +247,7 @@ switch model
             otherwise % hourly data
                 cfile = fullfile(input_path,sprintf('%s%04d%03d.%02d%s',input_file(1:16),time(i,1),floor(time(i,7)-datenum(time(i,1),1,1,0,0,0))+1,time(i,4),input_file(27:end)));
                 ncid = netcdf_open(cfile,'NC_NOWRITE');
-                nazov = fullfile(ghc_path,sprintf('GLDAS_VIC10SUBP_3H_%4d%02d%02d_%02d.mat',time(i,1),time(i,2),time(i,3),time(i,4))); % Daily data
+                nazov = fullfile(ghc_path,sprintf('GLDAS_VIC10_3H_%4d%02d%02d_%02d.mat',time(i,1),time(i,2),time(i,3),time(i,4))); % Daily data
         end
             lat_vec = double(netcdf_getVar(ncid,1));
             lon_vec = double(netcdf_getVar(ncid,0));
