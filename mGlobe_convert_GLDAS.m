@@ -1,8 +1,7 @@
 function mGlobe_convert_GLDAS(start_calc,end_calc,model,time_resol,ghc_path,input_path,input_file)
-%MGLOBE_DOWNLOAD_GLDAS Download GLDAS/MERRA data using OPeNDAP server architecture
-% This function works only with Matlab r2012a or higher!
-% Download required hydrological GLDAS/MERRA data, i.e. soil moisture and snow.
-% Water store in vegetation is not downloaded.
+%MGLOBE_CONVERT_GLDAS Download GLDAS/MERRA data
+% Convert required hydrological GLDAS/MERRA data, i.e. soil moisture and snow.
+% Water store in vegetation is not taken into account.
 % 
 % ASSUMTPION:      
 %   NOAH           ... layer 0 == longitude vector
@@ -114,18 +113,18 @@ switch model
     case 3
         switch time_resol
             case 6 % monthly data
-                cfile = fullfile(input_path,sprintf('%s%04d%02d%s',input_file(1:17),time(i,1),time(i,2),input_file(24:end)));
-                ncid = netcdf_open(cfile,'NC_NOWRITE');
+                cfile = fullfile(input_path,sprintf('%s%04d%02d*',input_file(1:17),time(i,1),time(i,2)));
+                cfile = dir(cfile); % get exact file name without wildcard
+                ncid = netcdf_open(fullfile(input_path,cfile.name),'NC_NOWRITE'); % use fullfile function as the dir command returns only file name, no path
                 nazov = fullfile(ghc_path,sprintf('GLDAS_NOAH025_M_%4d%02d.mat',time(i,1),time(i,2))); 
             otherwise % hourly data
-                cfile = fullfile(input_path,sprintf('%s%04d%03d.%02d%s',input_file(1:22),time(i,1),floor(time(i,7)-datenum(time(i,1),1,1,0,0,0))+1,time(i,4),input_file(33:end)));
-                ncid = netcdf_open(cfile,'NC_NOWRITE');
+                cfile = fullfile(input_path,sprintf('%s%04d%03d.%02d*',input_file(1:22),time(i,1),floor(time(i,7)-datenum(time(i,1),1,1,0,0,0))+1,time(i,4)));
+                cfile = dir(cfile); % get exact file name without wildcard
+                ncid = netcdf_open(fullfile(input_path,cfile.name),'NC_NOWRITE'); % use fullfile function as the dir command returns only file name, no path
                 nazov = fullfile(ghc_path,sprintf('GLDAS_NOAH025SUBP_3H_%4d%02d%02d_%02d.mat',time(i,1),time(i,2),time(i,3),time(i,4))); % Daily data
         end
             lat_vec = double(netcdf_getVar(ncid,1));
             lon_vec = double(netcdf_getVar(ncid,0));
-            lonsize = length(lon_vec);
-            latsize = length(lat_vec);
             [out_mat.lon,out_mat.lat] = meshgrid(lon_vec,lat_vec);
             % Select data 
             temp = double(netcdf_getVar(ncid,4));
@@ -144,18 +143,18 @@ switch model
     case 4
         switch time_resol
             case 6 % monthly data
-                cfile = fullfile(input_path,sprintf('%s%04d%02d%s',input_file(1:16),time(i,1),time(i,2),input_file(23:end)));
-                ncid = netcdf_open(cfile,'NC_NOWRITE');
+                cfile = fullfile(input_path,sprintf('%s%04d%02d*',input_file(1:16),time(i,1),time(i,2))); % create file name with wildcard
+                cfile = dir(cfile); % get exact file name without wildcard
+                ncid = netcdf_open(fullfile(input_path,cfile.name),'NC_NOWRITE'); % use fullfile function as the dir command returns only file name, no path
                 nazov = fullfile(ghc_path,sprintf('GLDAS_NOAH10_M_%4d%02d.mat',time(i,1),time(i,2))); 
             otherwise % hourly data
-                cfile = fullfile(input_path,sprintf('%s%04d%03d.%02d%s',input_file(1:21),time(i,1),floor(time(i,7)-datenum(time(i,1),1,1,0,0,0))+1,time(i,4),input_file(32:end)));
-                ncid = netcdf_open(cfile,'NC_NOWRITE');
+                cfile = fullfile(input_path,sprintf('%s%04d%03d.%02d*',input_file(1:21),time(i,1),floor(time(i,7)-datenum(time(i,1),1,1,0,0,0))+1,time(i,4))); % create file name with wildcard
+                cfile = dir(cfile); % get exact file name without wildcard
+                ncid = netcdf_open(fullfile(input_path,cfile.name),'NC_NOWRITE'); % use fullfile function as the dir command returns only file name, no path
                 nazov = fullfile(ghc_path,sprintf('GLDAS_NOAH10SUBP_3H_%4d%02d%02d_%02d.mat',time(i,1),time(i,2),time(i,3),time(i,4))); % Daily data
         end
             lat_vec = double(netcdf_getVar(ncid,1));
             lon_vec = double(netcdf_getVar(ncid,0));
-            lonsize = length(lon_vec);
-            latsize = length(lat_vec);
             [out_mat.lon,out_mat.lat] = meshgrid(lon_vec,lat_vec);
             % Select data 
             temp = double(netcdf_getVar(ncid,4));
@@ -174,18 +173,18 @@ switch model
     case 1
         switch time_resol
             case 6 % monthly data
-                cfile = fullfile(input_path,sprintf('%s%04d%02d%s',input_file(1:15),time(i,1),time(i,2),input_file(22:end)));
-                ncid = netcdf_open(cfile,'NC_NOWRITE');
+                cfile = fullfile(input_path,sprintf('%s%04d%02d*',input_file(1:15),time(i,1),time(i,2)));
+                cfile = dir(cfile); % get exact file name without wildcard
+                ncid = netcdf_open(fullfile(input_path,cfile.name),'NC_NOWRITE'); % use fullfile function as the dir command returns only file name, no path
                 nazov = fullfile(ghc_path,sprintf('GLDAS_CLM10_M_%4d%02d.mat',time(i,1),time(i,2))); 
             otherwise % hourly data
-                cfile = fullfile(input_path,sprintf('%s%04d%03d.%02d%s',input_file(1:20),time(i,1),floor(time(i,7)-datenum(time(i,1),1,1,0,0,0))+1,time(i,4),input_file(31:end)));
-                ncid = netcdf_open(cfile,'NC_NOWRITE');
+                cfile = fullfile(input_path,sprintf('%s%04d%03d.%02d*',input_file(1:20),time(i,1),floor(time(i,7)-datenum(time(i,1),1,1,0,0,0))+1,time(i,4)));
+                cfile = dir(cfile); % get exact file name without wildcard
+                ncid = netcdf_open(fullfile(input_path,cfile.name),'NC_NOWRITE'); % use fullfile function as the dir command returns only file name, no path
                 nazov = fullfile(ghc_path,sprintf('GLDAS_CLM10SUBP_3H_%4d%02d%02d_%02d.mat',time(i,1),time(i,2),time(i,3),time(i,4))); % Daily data
         end
             lat_vec = double(netcdf_getVar(ncid,1));
             lon_vec = double(netcdf_getVar(ncid,0));
-            lonsize = length(lon_vec);
-            latsize = length(lat_vec);
             [out_mat.lon,out_mat.lat] = meshgrid(lon_vec,lat_vec);
             % Select data 
             temp = double(netcdf_getVar(ncid,4));
@@ -211,18 +210,18 @@ switch model
     case 2
         switch time_resol
             case 6 % monthly data
-                cfile = fullfile(input_path,sprintf('%s%04d%02d%s',input_file(1:15),time(i,1),time(i,2),input_file(22:end)));
-                ncid = netcdf_open(cfile,'NC_NOWRITE');
+                cfile = fullfile(input_path,sprintf('%s%04d%02d*',input_file(1:15),time(i,1),time(i,2)));
+                cfile = dir(cfile); % get exact file name without wildcard
+                ncid = netcdf_open(fullfile(input_path,cfile.name),'NC_NOWRITE'); % use fullfile function as the dir command returns only file name, no path
                 nazov = fullfile(ghc_path,sprintf('GLDAS_MOS10_M_%4d%02d.mat',time(i,1),time(i,2))); 
             otherwise % hourly data
-                cfile = fullfile(input_path,sprintf('%s%04d%03d.%02d%s',input_file(1:20),time(i,1),floor(time(i,7)-datenum(time(i,1),1,1,0,0,0))+1,time(i,4),input_file(31:end)));
-                ncid = netcdf_open(cfile,'NC_NOWRITE');
+                cfile = fullfile(input_path,sprintf('%s%04d%03d.%02d*',input_file(1:20),time(i,1),floor(time(i,7)-datenum(time(i,1),1,1,0,0,0))+1,time(i,4)));
+                cfile = dir(cfile); % get exact file name without wildcard
+                ncid = netcdf_open(fullfile(input_path,cfile.name),'NC_NOWRITE'); % use fullfile function as the dir command returns only file name, no path
                 nazov = fullfile(ghc_path,sprintf('GLDAS_MOS10SUBP_3H_%4d%02d%02d_%02d.mat',time(i,1),time(i,2),time(i,3),time(i,4))); % Daily data
         end
             lat_vec = double(netcdf_getVar(ncid,1));
             lon_vec = double(netcdf_getVar(ncid,0));
-            lonsize = length(lon_vec);
-            latsize = length(lat_vec);
             [out_mat.lon,out_mat.lat] = meshgrid(lon_vec,lat_vec);
             % Select data 
             temp = double(netcdf_getVar(ncid,4));
@@ -241,18 +240,18 @@ switch model
     case 5
         switch time_resol
             case 6 % monthly data
-                cfile = fullfile(input_path,sprintf('%s%04d%02d%s',input_file(1:15),time(i,1),time(i,2),input_file(22:end)));
-                ncid = netcdf_open(cfile,'NC_NOWRITE');
+                cfile = fullfile(input_path,sprintf('%s%04d%02d*',input_file(1:15),time(i,1),time(i,2)));
+                cfile = dir(cfile); % get exact file name without wildcard
+                ncid = netcdf_open(fullfile(input_path,cfile.name),'NC_NOWRITE'); % use fullfile function as the dir command returns only file name, no path
                 nazov = fullfile(ghc_path,sprintf('GLDAS_VIC10_M_%4d%02d.mat',time(i,1),time(i,2))); 
             otherwise % hourly data
-                cfile = fullfile(input_path,sprintf('%s%04d%03d.%02d%s',input_file(1:16),time(i,1),floor(time(i,7)-datenum(time(i,1),1,1,0,0,0))+1,time(i,4),input_file(27:end)));
-                ncid = netcdf_open(cfile,'NC_NOWRITE');
+                cfile = fullfile(input_path,sprintf('%s%04d%03d.%02d*',input_file(1:16),time(i,1),floor(time(i,7)-datenum(time(i,1),1,1,0,0,0))+1,time(i,4)));
+                cfile = dir(cfile); % get exact file name without wildcard
+                ncid = netcdf_open(fullfile(input_path,cfile.name),'NC_NOWRITE'); % use fullfile function as the dir command returns only file name, no path
                 nazov = fullfile(ghc_path,sprintf('GLDAS_VIC10_3H_%4d%02d%02d_%02d.mat',time(i,1),time(i,2),time(i,3),time(i,4))); % Daily data
         end
             lat_vec = double(netcdf_getVar(ncid,1));
             lon_vec = double(netcdf_getVar(ncid,0));
-            lonsize = length(lon_vec);
-            latsize = length(lat_vec);
             [out_mat.lon,out_mat.lat] = meshgrid(lon_vec,lat_vec);
             % Select data 
             temp = double(netcdf_getVar(ncid,4));
@@ -269,10 +268,11 @@ switch model
     case 6                                                                        % MERRA model
         switch time_resol
             case 6 % monthly data
-                cfile = fullfile(input_path,sprintf('%s%04d%02d%s',input_file(1:36),time(i,1),time(i,2),input_file(43:end)));
-                ncid = netcdf_open(cfile,'NC_NOWRITE');
+                cfile = fullfile(input_path,sprintf('%s%04d%02d*',input_file(1:36),time(i,1),time(i,2)));
+                cfile = dir(cfile); % get exact file name without wildcard
+                ncid = netcdf_open(fullfile(input_path,cfile.name),'NC_NOWRITE'); % use fullfile function as the dir command returns only file name, no path
                 nazov = fullfile(ghc_path,sprintf('MERRA_M_%4d%02d.mat',time(i,1),time(i,2))); 
-                [numdims,numvars] = netcdf_inq(ncid);                                   % get all variable names
+                [~,numvars] = netcdf_inq(ncid);                                   % get all variable names
                 for j = 0:numvars-1                                                     % transform all layers (not only svwlX and sd)!!
                     name = netcdf_inqVar(ncid,j);                                       % get variable name
                     switch name
@@ -286,6 +286,17 @@ switch model
                           out_mat.twland(out_mat.twland>9.999e+14 | out_mat.twland<0) = 0;
                         end
                 end
+                % Check if longitude vector exist (new Merra data format does not contain XDim variable)
+                if ~exist('lon_vec','var')
+                    lon_res = 360/size(out_mat.twland,2);
+                    lon_vec = -180:lon_res:180-lon_res/2;
+                end
+                % Do the same for latitude
+                if ~exist('lat_vec','var')
+                    % Do not use linspace for longitude as -180 == 180 whereas -90 ~= 90 (data for pole)
+                    lat_vec = linspace(-90,90,size(out_mat.twland,1));
+                end
+                % Create lon/lat matrix
                 [out_mat.lon,out_mat.lat] = meshgrid(lon_vec,lat_vec);
                 out_mat.time = time(i,7);
                 out_mat.source = cfile;
@@ -293,9 +304,10 @@ switch model
                 netcdf_close(ncid);
                 save(nazov,'out_mat','-mat7-binary')
             otherwise % hourly data
-                cfile = fullfile(input_path,sprintf('%s%04d%02d%02d%s',input_file(1:36),time(i,1),time(i,2),time(i,3),input_file(45:end)));
-                ncid = netcdf_open(cfile,'NC_NOWRITE');
-                nazov = fullfile(ghc_path,sprintf('MERRA_1H_%4d%02d%02d_%02d.mat',time(i,1),time(i,2),time(i,3),time(i,4))); % Daily data
+                cfile = fullfile(input_path,sprintf('%s%04d%02d%02d*',input_file(1:36),time(i,1),time(i,2),time(i,3)));
+                cfile = dir(cfile); % get exact file name without wildcard
+                ncid = netcdf_open(fullfile(input_path,cfile.name),'NC_NOWRITE'); % use fullfile function as the dir command returns only file name, no path
+                nazov = fullfile(ghc_path,sprintf('MERRA_1H_%4d%02d%02d_%02d.mat',time(i,1),time(i,2),time(i,3),time(i,4))); % 
                 [numdims,numvars] = netcdf_inq(ncid);                                   % get all variable names
                 for j = 0:numvars-1                                                     % transform all layers (not only svwlX and sd)!!
                     name = netcdf_inqVar(ncid,j);                                       % get variable name
@@ -311,6 +323,17 @@ switch model
                           out_mat.twland(out_mat.twland>9.999e+14 | out_mat.twland<0) = 0;
                         end
                 end
+                % Check if longitude vector exist (new Merra data format does not contain XDim variable)
+                if ~exist('lon_vec','var')
+                    lon_res = 360/size(out_mat.twland,2);
+                    lon_vec = -180:lon_res:180-lon_res/2;
+                end
+                % Do the same for latitude
+                if ~exist('lat_vec','var')
+                    % Do not use linspace for longitude as -180 == 180 whereas -90 ~= 90 (data for pole)
+                    lat_vec = linspace(-90,90,size(out_mat.twland,1));
+                end
+                % Create lon/lat matrix
                 [out_mat.lon,out_mat.lat] = meshgrid(lon_vec,lat_vec);
                 out_mat.time = time(i,7);
                 out_mat.source = cfile;
