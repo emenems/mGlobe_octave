@@ -665,14 +665,17 @@ if sum(sum(abs(dgE(~isnan(dgE))))) > 0
         pressure_interp(row_id_nan == 1) = 1234567.89;
         temp_interp(row_id_nan == 1) = 1234567.89;
         sh_interp(row_id_nan == 1) = 1234567.89;
+		dgE_write_local(row_id_nan == 1) = 1234567.89;
+		dgP_write_local(row_id_nan == 1) = 1234567.89;
 		% Set other possible NaNs to missing data flag
-		total_write(isnan(total_write)) = 1234567.89;
         dgE_write(isnan(dgE_write)) = 1234567.89;
         dgP_write(isnan(dgP_write)) = 1234567.89;
         sum_for_tsf(isnan(sum_for_tsf)) = 1234567.89;
         pressure_interp(isnan(pressure_interp)) = 1234567.89;
         temp_interp(isnan(temp_interp)) = 1234567.89;
         sh_interp(isnan(sh_interp)) = 1234567.89;
+		dgE_write_local(isnan(dgE_write_local)) = 1234567.89;
+		dgP_write_local(isnan(dgP_write_local)) = 1234567.89;
         fprintf(fid,'[TIMEFORMAT] DATETIME\n\n');
         fprintf(fid,'[INCREMENT] %8.3f\n\n',time_resol_in_days*24*60*60);
         fprintf(fid,'[CHANNELS]\n');

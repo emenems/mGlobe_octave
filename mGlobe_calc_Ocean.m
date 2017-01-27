@@ -140,9 +140,10 @@ end
 if model_version == 3                                                       % special time treatment for GRACE data (=unequally spaced)
     clear time
     try
-    cd(fullfile('GRACE','OCEAN'));
-    file_count = dir([ghc_path(end-21:end),'*.mat']);                       % find files in GRACE folder with given PREFIX in *.mat format
-    cd(fullfile('..','..'));
+    curfolder = pwd;
+    cd(fileparts(ghc_path));
+    file_count = dir([ghc_path(end-21:end),'*.mat']);                       % find files in GRACE folder with given PREFIX in mat format
+    cd(curfolder);
     if isempty(file_count)
         time(1,:) = [9999,9999,9999,9999,9999,9999,9999];
     else
@@ -518,6 +519,7 @@ if sum(sum(abs(dgE(~isnan(dgE))))) > 0
         dgP_write(row_id_nan == 1) = 1234567.89;
         sum_for_tsf = total_write;
         sum_for_tsf(row_id_nan == 1) = 1234567.89;
+		mean_value(row_id_nan == 1) = 1234567.89;
         fprintf(fid,'[TIMEFORMAT] DATETIME\n\n');
         fprintf(fid,'[INCREMENT] %8.3f\n\n',time_resol_in_days*24*60*60);
         fprintf(fid,'[CHANNELS]\n');
