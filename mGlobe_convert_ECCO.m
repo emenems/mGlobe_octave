@@ -107,19 +107,45 @@ switch model_version
         if time_resol < 6
             for i = 1:length(time(:,7))
                 try
-                    fix_path = input_path(1:end-25);
-                    year_folder = sprintf('kf080_%04d',time(i,1));
-                    day_of_year = fix(time(i,7)-datenum(time(i,1),1,1,0,0,0))+1;
-                    if day_of_year<=90
-                        quarter_folder = 'n10day_01_09\OBPano_08_08.00001_02160_012.cdf';
-                    elseif day_of_year<=180
-                        quarter_folder = 'n10day_10_18\OBPano_08_08.02160_04320_012.cdf';
-                    elseif day_of_year<=270
-                        quarter_folder = 'n10day_19_27\OBPano_08_08.04320_06480_012.cdf';
+                    if strcmp(input_path(end),'\')
+                        fix_path = input_path(1:end-18);
                     else
-                        quarter_folder = 'n10day_28_37\OBPano_08_08.06480_08880_012.cdf';
+                        fix_path = input_path(1:end-17);
                     end
-                    file_name = fullfile(fix_path,year_folder,quarter_folder);
+                    year_folder = [fix_path,sprintf('%04d',time(i,1))];
+                    day_of_year = fix(time(i,7)-datenum(time(i,1),1,1,0,0,0))+1;
+                    temp = dir(year_folder);
+                    file_name = 'required netcdf file';
+                    for j = 1:length(temp)
+                        if length(temp(j).name)>8
+                            if day_of_year<=90 && strcmp(temp(j).name(1:9),'n10day_01')
+                                % Get the folder name (depends on the total number
+                                % of days => not constant)
+                                temp_subfolder = temp(j).name;
+                                % Get file name (just like folder name)
+                                loc_file = dir(fullfile(year_folder,temp_subfolder,'OBPano*'));
+                                % Combine folder and file names for reading
+                                file_name = fullfile(year_folder,temp_subfolder,loc_file(1).name);
+                                break;
+                            elseif day_of_year<=180 && strcmp(temp(j).name(1:9),'n10day_10')
+                                temp_subfolder = temp(j).name;
+                                loc_file = dir(fullfile(year_folder,temp_subfolder,'OBPano*'));
+                                file_name = fullfile(year_folder,temp(1).name,loc_file(1).name);
+                                break;
+                            elseif day_of_year<=270 && strcmp(temp(j).name(1:9),'n10day_19')
+                                temp_subfolder = temp(j).name;
+                                loc_file = dir(fullfile(year_folder,temp_subfolder,'OBPano*'));
+                                file_name = fullfile(year_folder,temp_subfolder,loc_file(1).name);
+                                break;
+                            elseif strcmp(temp(j).name(1:9),'n10day_28')
+                                temp_subfolder = temp(j).name;
+                                loc_file = dir(fullfile(year_folder,temp_subfolder,'OBPano*'));
+                                file_name = fullfile(year_folder,temp_subfolder,loc_file(1).name);
+                                break;
+                            end
+                        end
+                    end
+					          clear temp temp_file temp_subfloder j;
                     ncid = netcdf_open(file_name,'NC_NOWRITE');                     % open NetCDF file
                     out_mat.lat = double(netcdf_getVar(ncid,0));                   % get latitude
                     out_mat.lon = double(netcdf_getVar(ncid,2));                   % get longitude
@@ -141,17 +167,21 @@ switch model_version
                         out_mat.input_file = file_name;                     % store input file name
                         out_mat.units = 'mbar';                             % store units
                         netcdf_close(ncid)                                  % close the netcdf file
-                        save(fullfile(ghc_path,sprintf('ECCO1_12H_%04d%02d%02d_%02d.mat',time(i,1),time(i,2),time(i,3),time(i,4))),'out_mat','-mat7-binary');
+                        save(fullfile(ghc_path,sprintf('ECCO1_12H_%04d%02d%02d_%02d.mat',...
+                            time(i,1),time(i,2),time(i,3),time(i,4))),'out_mat','-mat7-binary');
                         if size(time,1) > 2
                             out_message = sprintf('Models: converting ECCO model ... (%3.0f%%)',100*((i-1)/size(time,1))); % create status message
                         else
                             out_message = sprintf('Models: converting ECCO model ...'); % create status message
                         end
-                    set(findobj('Tag','text_status'),'String',out_message); drawnow % write status message
-                        clear out_mat ncit file_name fix_path year_folder day_of_year quarter_folder r
+                        set(findobj('Tag','text_status'),'String',out_message); drawnow % write status message
+                          clear out_mat ncit file_name fix_path year_folder day_of_year quarter_folder r
                     else
-                        set(findobj('Tag','text_status'),'String',['Models: Could not find model values for : %04d/%02d/%02d %02d (in %s)',time(i,1),time(i,2),time(i,3),time(i,4),file_name]); drawnow
-                        fprintf('Models: Could not find model values for : %04d/%02d/%02d %02d (in %s)\n',time(i,1),time(i,2),time(i,3),time(i,4),file_name);
+                        set(findobj('Tag','text_status'),'String',...
+                            sprintf('Models: Could not find model values for : %04d/%02d/%02d %02d (in %s)',...
+                            time(i,1),time(i,2),time(i,3),time(i,4),file_name)); drawnow
+                        fprintf('Models: Could not find model values for : %04d/%02d/%02d %02d (in %s)\n',...
+                            time(i,1),time(i,2),time(i,3),time(i,4),file_name);
                     end
                 catch
                     set(findobj('Tag','text_status'),'String',['Models: Could not load: ',file_name]); drawnow
@@ -222,7 +252,7 @@ switch model_version
                 if time_resol == 6                                          % save model values 
                     save(fullfile(ghc_path,sprintf('ECCO2_M_%04d%02d.mat',time(i,1),time(i,2))),'out_mat','-mat7-binary');
                 else
-                    save(fullfile(ghc_path,sprintf('ECCO2_D_%04d%02d%02d_%02d.mat',time(i,1),time(i,2),time(i,3),time(i,4))),'out_mat','-mat7-binary');
+                    save(fullfile(ghc_path,sprintf('ECCO2_D_%04d%02d%02d_12.mat',time(i,1),time(i,2),time(i,3))),'out_mat','-mat7-binary');
                 end
                 netcdf_close(ncid)                                              % close the netcdf file
                 if size(time,1) > 2
