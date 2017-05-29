@@ -22,6 +22,10 @@ function mGlobe_convert_GLDAS(start_calc,end_calc,model,time_resol,ghc_path,inpu
 %                  ... layer 5 == snow water equivalent
 %   MERRA          ... MAT1NXLND layers: TWLAND, XDim, YDim 
 %   MERRA2         ... M2T1NXLND layers: TWLAND, lon, lat,time 
+%   NOAH v2.1      ... layer 1 == longitude vector
+%                  ... layer 0 == latitude vector
+%                  ... layer 19-22 == contains 4 soil moisture layers
+%                  ... layer 17 == snow water equivalent
 % 
 % INPUT:
 %   start_calc     ... starting time in matlab format (days)
@@ -38,7 +42,8 @@ function mGlobe_convert_GLDAS(start_calc,end_calc,model,time_resol,ghc_path,inpu
 %         4        ... NOAH with 1.0 deg spatial resolution
 %         5        ... VIC model (1.0 deg spatial resolution)
 %         6        ... MERRA model (0.667x0.5 deg spatial resolution)
-%         7        ... MERRA2 model (0.667x0.5 deg spatial resolution)
+%         7        ... MERRA model (0.667x0.5 deg spatial resolution)
+%         8        ... NOAH025 v2.1 with 0.25 deg spatial resolution
 %                      Example: 1
 %   ghc_path 	     ... output path (string)
 %                      Example: fullfile('GHM','CLM');
@@ -58,7 +63,6 @@ function mGlobe_convert_GLDAS(start_calc,end_calc,model,time_resol,ghc_path,inpu
 %   out_mat.units  ... swe and soilmX units
 % 
 %                                         M.Mikolaj, mikolaj@gfz-potsdam.de
-%                                                                05.07.2015
 %                                                                      v1.0
 
 %% Time setting
@@ -415,7 +419,35 @@ switch model
                 netcdf_close(ncid);
                 save(nazov,'out_mat','-mat7-binary')
         end
-            
+	case 8 % GLDAS NOAH025 v2.1
+        switch time_resol
+            case 6 % monthly data
+                cfile = fullfile(input_path,sprintf('%s%04d%02d*',input_file(1:17),time(i,1),time(i,2)));
+                cfile = dir(cfile); % get exact file name without wildcard
+                ncid = netcdf_open(fullfile(input_path,cfile.name),'NC_NOWRITE'); % use fullfile function as the dir command returns only file name, no path
+                nazov = fullfile(ghc_path,sprintf('GLDAS2_NOAH025_M_%4d%02d.mat',time(i,1),time(i,2))); 
+            otherwise % hourly data
+                cfile = fullfile(input_path,sprintf('%s%04d%02d%02d.%02d*',input_file(1:18),time(i,1),time(i,2),time(i,3),time(i,4)));
+                cfile = dir(cfile); % get exact file name without wildcard
+                ncid = netcdf_open(fullfile(input_path,cfile.name),'NC_NOWRITE'); % use fullfile function as the dir command returns only file name, no path
+                nazov = fullfile(ghc_path,sprintf('GLDAS2_NOAH025SUBP_3H_%4d%02d%02d_%02d.mat',time(i,1),time(i,2),time(i,3),time(i,4))); % Daily data
+        end
+            lat_vec = double(netcdf_getVar(ncid,0));
+            lon_vec = double(netcdf_getVar(ncid,1));
+            [out_mat.lon,out_mat.lat] = meshgrid(lon_vec,lat_vec);
+            % Index for soilm1,soilm2,...SWE
+            layer_index = [19,20,21,22,17];
+            % Select data 
+            out_mat.soilm1 = double(netcdf_getVar(ncid,layer_index(1)))';out_mat.soilm1(out_mat.soilm1>9.999e+19 | out_mat.soilm1<0) = 0;
+            out_mat.soilm2 = double(netcdf_getVar(ncid,layer_index(2)))';out_mat.soilm2(out_mat.soilm2>9.999e+19 | out_mat.soilm2<0) = 0;
+            out_mat.soilm3 = double(netcdf_getVar(ncid,layer_index(3)))';out_mat.soilm3(out_mat.soilm3>9.999e+19 | out_mat.soilm3<0) = 0;
+            out_mat.soilm4 = double(netcdf_getVar(ncid,layer_index(4)))';out_mat.soilm4(out_mat.soilm4>9.999e+19 | out_mat.soilm4<0) = 0;
+            out_mat.swe = double(netcdf_getVar(ncid,layer_index(5)))';out_mat.swe(out_mat.swe>9.999e+19 | out_mat.swe<0) = 0;
+            out_mat.time = time(i,7);
+            out_mat.source = cfile;
+            out_mat.units = 'mm';
+            netcdf_close(ncid);
+            save(nazov,'out_mat','-mat7-binary')  
 end
 catch
     check_out = 1;

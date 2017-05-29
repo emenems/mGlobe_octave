@@ -6,57 +6,58 @@ function mGlobe_calc_Hydro(Input,output_file,output_file_type,DEM_file,start_cal
 % INPUT:
 %   Input             ... Point of observation 
 %                         [Latitude (deg), Longitude (deg), Height(deg)]
-%						              Example: [48.24885,16.35650,192.70]
+%						  Example: [48.24885,16.35650,192.70]
 %   output_file       ... full output file name
-%						              Example: 'HYDRO_NOAH025_Effect.txt'
-%   output_file_type  ... File type switch: [xls, txt, tsf]. xls not supported in Octave!
-%						              Example: [0 1 0]
+%						  Example: 'HYDRO_NOAH025_Effect.txt'
+%   output_file_type  ... File type switch: [xls, txt, tsf]
+%						  Example: [0 1 0]
 %   DEM_file          ... DEM grid in *.mat format
 %                         (dem.lat (deg),dem.lon (deg),dem.height (m))
-%						              Example: 'Vienna_DEM_up_to_0p12degrees.mat'
+%						  Example: 'Vienna_DEM_up_to_0p12degrees.mat'
 %   start_calc        ... starting time in matlab format (days)
-%						              Example: datenum(2000,1,1,12,0,0)
+%						  Example: datenum(2000,1,1,12,0,0)
 %   end_calc          ... end time in matlab format (days)
-%						              Example: datenum(2000,12,1,12,0,0)
+%						  Example: datenum(2000,12,1,12,0,0)
 %   step_calc         ... time resolution switcher (not in time units)
-%						              1 = 3 hours, 2 = 6 hours, 3 = 12 hours, 
-%						              4 = one day, 5 = two days, 6 = month
-%						              Example: 4
+%						  1 = 3 hours, 2 = 6 hours, 3 = 12 hours, 
+%						  4 = one day, 5 = two days, 6 = month
+%						  Example: 4
 %   exclude_calc      ... excluding area option [1 1] = Greenland and
 %                         Antarctica, 1 = removed, 0 not removed
-%						              Example: [1 1]
+%						  Example: [1 1]
 %   model_calc        ... Model intern identification/switch 
-%						              1 = GLDAS/CLM, 2 = GLDAS/MOS, 
-%					                  3 = GLDAS/NOAH025, 4 = GLDAS/NOAH10,
-%					                  5 = GLDAS/VIC, 6 = ERA, 7 = MERRA,
-%					                  8 = OTHER, 9 = GRACE, 10 = NCEP Reanalysis 2, 
-%                         			  11 = MERRA, 12 = NCEP Reanalysis 1 (beta)
-%						              Example: 3
+%						  1 = GLDAS/CLM, 2 = GLDAS/MOS, 
+%					      3 = GLDAS/NOAH025, 4 = GLDAS/NOAH10,
+%					      5 = GLDAS/VIC, 6 = ERA, 7 = MERRA,
+%					      8 = OTHER, 9 = GRACE, 10 = NCEP Reanalysis 2, 
+%                         11 = MERRA, 12 = NCEP Reanalysis 1 (beta),
+%                         13 = GLDASv2.1/NOAH025
+%						  Example: 3
 %   model_layer       ... Model layer (depends on model_calc). For all
-%						              models, 1 = total water storage
-%						              Example: 1
+%						  models, 1 = total water storage
+%						  Example: 1
 %   mass_conserv      ... mass conservation switch
-%						              1 = no effect over ocean 
-%						              2 = ocean layer computed from water deficit/excess
-%						              3 = coupled model (gives also water storage over oceans)
-%						              Example: 2
+%						  1 = no effect over ocean 
+%						  2 = ocean layer computed from water deficit/excess
+%						  3 = coupled model (gives also water storage over oceans)
+%						  Example: 2
 %   ghc_treshold      ... minimal spherical distance of hydro.masses to 
 %                         point of observation in degrees
-%						              Example: 0.1
+%						  Example: 0.1
 %   ghc_path          ... path used for loading of model data
-%						              Example: fullfile('GHM','NOAH025')
+%						  Example: fullfile('GHM','NOAH025')
 %                         Example for Other models: 'GHM\OTHER\OTHERmodel';
 %                         Example for GRACE: 'GRACE\LAND\GRC_GFZ_RL05_CONv1409s';
 %   subtract_average  ... subtract average from all output variables
 %                         (0,1 = no, yes)
-%						              Example: 0
+%						  Example: 0
 %   INCLUDE_file      ... full file name with inclusion polygon (will set 
 %                         all values outside this polygon to zero). No 
 %                         header lines are allowed. Supported format: *.txt
 %                         Lon1 Lat1 (in degrees, -90:90, -180:180 system)
 %                         Lon2 Lat2
 %                         ...
-%						              Example: 'Inclusion_polygon_Lon_Lat_degrees.txt'
+%						  Example: 'Inclusion_polygon_Lon_Lat_degrees.txt'
 % 
 % 
 % OUTPUT (saved automatically): 
@@ -67,7 +68,7 @@ function mGlobe_calc_Hydro(Input,output_file,output_file_type,DEM_file,start_cal
 %                                                                29.10.2014
 %                                                                      v1.0
 
-tic
+tic % measure the total time of computation
 
 %% Set calculation properties
 memory_mult = 1;                                                            % Change for low memory (RAM) PC (>1 lower resolution, <1 higher resolution)
@@ -618,6 +619,44 @@ for i = 1:size(time,1);
                 new.lon = horzcat(new.lon(:,ri+1:end),new.lon(:,1:ri));     % Connect matrices to remove discontinuity
             	new.lat = horzcat(new.lat(:,ri+1:end),new.lat(:,1:ri));
                 new.celkovo = horzcat(new.celkovo(:,ri+1:end),new.celkovo(:,1:ri));clear ri;
+            catch exeption
+                out_message = sprintf('Hydro: file %s not found',nazov);
+                set(findobj('Tag','text_status'),'String',out_message); drawnow
+                check_out = 1;
+            end
+		case 13                                                             % GLDASv2.1/NOAH025
+            model_name = 'GLDASv2.1/NOAH025';
+            if exclude_calc(1) == 0 && exclude_calc(2) == 0                 % nothing is excluded
+                ref_mass_conserv = 1.1569436728e+17;
+            elseif exclude_calc(2) == 0 && exclude_calc(1) == 1             % only Greenland excluded
+                ref_mass_conserv = 6.8439669881e+16;
+            elseif exclude_calc(2) == 1 && exclude_calc(1) == 1             % Greenland and Antarctica excluded
+                ref_mass_conserv = 6.8439669881e+16;
+            elseif exclude_calc(2) == 1 && exclude_calc(1) == 0             % only Antarctica excluded
+                ref_mass_conserv = 1.1569436728e+17;
+            end
+            if step_calc == 6
+                nazov = fullfile(ghc_path,sprintf('GLDAS2_NOAH025_M_%4d%02d.mat',time(i,1),time(i,2)));
+            else
+                nazov = fullfile(ghc_path,sprintf('GLDAS2_NOAH025SUBP_3H_%4d%02d%02d_%02d.mat',time(i,1),time(i,2),time(i,3),time(i,4)));
+            end
+            try
+                new = importdata(nazov);
+                switch model_layer
+                    case 1
+                        new.celkovo = new.soilm1 + new.soilm2 + new.soilm3 + new.soilm4 + new.swe;
+                        out_layer = 'total';
+                    case 2
+                        new.celkovo = new.soilm1;out_layer = 'soilm1';
+                    case 3
+                        new.celkovo = new.soilm2;out_layer = 'soilm2';
+                    case 4
+                        new.celkovo = new.soilm3;out_layer = 'soilm3';
+                    case 5
+                        new.celkovo = new.soilm4;out_layer = 'soilm4';
+                    case 6
+                        new.celkovo = new.swe;out_layer = 'swe';
+                end
             catch exeption
                 out_message = sprintf('Hydro: file %s not found',nazov);
                 set(findobj('Tag','text_status'),'String',out_message); drawnow

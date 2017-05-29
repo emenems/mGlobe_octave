@@ -8,7 +8,7 @@ clc
 %% Main settings
 % Location
 location = 'GGP_COORDINATES.txt'; 											% this variable points the the file with coordinates
-output_file_prefix = 'f:\mikolaj\code\libraries\mGlobe_octave\EXAMPLES\Hydro';              		% folder for results. Use relative or absolute Path
+output_file_prefix = 'f:\mikolaj\code\libraries\mGlobe_octave\EXAMPLES\Hydro';     % folder for results. Use relative or absolute Path
 select_site = 'All';                                                        % set GGP abbreviation (e,g., 'PE'), or 'All' for all sites (see GGP_COORDINATES.txt file)
 % Time
 start_calc = datenum(2012,1,1,12,0,0);										% starting time
@@ -46,7 +46,7 @@ end
 
 %% Compute
 if ischar(select_model)														% use 'All' models if select_model = 'All'
-    model_calc = [1 2 3 5 6 7 10 11];                                          % only daily models are supported
+    model_calc = [1 2 3 5 6 7 10 11 12 13];                                 % only daily models are supported
 else
     model_calc = select_model;												% use only selected model
 end
@@ -101,14 +101,17 @@ for j = 1:length(model_calc);												% loop for each model
                    model_name = 'GRACE'; 
                    ghc_path = fullfile(model_folder,'LAND');
                 case 10 
-                   model_name = 'NCEP1'; 
+                   model_name = 'NCEP2'; 
                    ghc_path = fullfile(model_folder,'NCEP');
                 case 11 
                    model_name = 'MERRA2'; 
                    ghc_path = fullfile(model_folder,'MERRA2');
                 case 12 
-                   model_name = 'NCEP2'; 
+                   model_name = 'NCEP1'; 
                    ghc_path = fullfile(model_folder,'NCEP');
+                case 13  
+                   model_name = 'NOAH025v21';  
+                   ghc_path = fullfile(model_folder,'NOAH025v21');
             end
             if isempty(INCLUDE_file)										% inclusion polygon
                 inc = 'All';
@@ -119,8 +122,8 @@ for j = 1:length(model_calc);												% loop for each model
                 char(sites{1,1}(i)),cmonth1,cyear1,cmonth2,cyear2,time_resol,model_name,exclude_calc(1),exclude_calc(2),inc,mass_conserv-1,ghc_treshold*100));
             % Input
             Input = [sites{1,3}(i),sites{1,2}(i),sites{1,4}(i)];            % input coordinates
-                                           
-			      % load DEM to check if it contains point of computation
+
+            % load DEM to check if it contains point of computation
             if ~isempty(DEM_file)	
                 if ~exist('dem','var')
                     dem = importdata(DEM_file);
@@ -133,11 +136,11 @@ for j = 1:length(model_calc);												% loop for each model
                     curr_DEM = DEM_file;                                    % otherwise use given DEM
                 end
             else
-				        curr_DEM = [];
+				curr_DEM = [];
                 Input(3) = 0;                                               % set height to zero if DEM not loaded
             end
-            % Change folder to mGlobe
-            cd(mglobe_folder)    
+			% Change folder to mGlobe 
+            cd(mglobe_folder)
 			% Compute
             mGlobe_calc_Hydro(Input,output_file,output_file_type,curr_DEM,start_calc,end_calc,step_calc,exclude_calc,model_calc(j),model_layer,mass_conserv,ghc_treshold,ghc_path,subtract_average,INCLUDE_file)
             clear Input output_file curr_DEM                                        % remove used variables
