@@ -47,3 +47,6 @@ Temporary Items
 /GRACE/*/*.mat
 /OBPM/*/*.mat
 octave-workspace
+
+# Unit test (not complete yet)
+/test/*
