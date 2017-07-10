@@ -14,7 +14,8 @@ function [DataN,DataID]= mGlobe_interpolation(LonI,LatI,DataI,LonN,LatN,continen
 %   LatN      ... latitude created by meshgrid used for interpolation
 %   LonI      ... longitude created by meshgrid used for interpolation
 %   continent ... 1 for continent/ocean determination = 1/-1
-%                         0 without continent/ocean area identification
+%                 0 without continent/ocean area identification
+%                 string for use of shapefile for continent/ocean ID
 % Output:   
 %   DataN     ... new interpolated data for LonN, LatN grid
 %   DataI     ... ID for ocean (==-1) and land (==1)
@@ -24,6 +25,37 @@ function [DataN,DataID]= mGlobe_interpolation(LonI,LatI,DataI,LonN,LatN,continen
 %                                                                      v1.0
 
 %% Prepare grid = sort after longitude
+% Before transforming coordinates, check if SHP file on input for
+% Ocean/Land identification
+if ischar(continent)
+    boarders = shaperead(continent,'UseGeoCoords',true);
+    DataID = LonN*0 - 0.5;
+    for i = 1:length(boarders)
+        % Check if the polygon contains NaN and remove it (required for octave)
+        temp_lon = [boarders(i).Lon];
+        temp_lat = [boarders(i).Lat];
+        temp = find(isnan(temp_lon+temp_lat));
+        if length(temp)>1% && ~strcmp(v(end),')')
+            % First part = main polygon, other parts after NaN = remove
+            % from inside of polygon => revert sign
+            DataID = DataID + double(inpolygon(LonN,LatN,temp_lon(1:temp(1)-1),temp_lat(1:temp(1)-1)));
+            for j = 2:length(temp)
+                c = temp(j-1)+1;
+                DataID = DataID - double(inpolygon(LonN,LatN,temp_lon(c:temp(j)-1),temp_lat(c:temp(j)-1)));
+            end
+            clear c j
+        elseif length(temp) == 1 && temp~= length(temp)
+            % Special case for Euro-asia + Caspian Sea
+            DataID = DataID + double(inpolygon(LonN,LatN,temp_lon(1:temp-1),temp_lat(1:temp-1)));
+            DataID = DataID - double(inpolygon(LonN,LatN,temp_lon(temp+1:end),temp_lat(temp+1:end)));
+        else
+            DataID = DataID + double(inpolygon(LonN,LatN,temp_lon,temp_lat));
+        end
+        clear temp temp_lon temp_lat
+    end
+    % Round to -1 and 1
+    DataID(DataID>0) = 1;DataID(DataID<0) = -1;
+end
 LonI(LonI<0) = LonI(LonI<0)+360;                                            % Transform given longitude to <0,360) system
 LonN(LonN<0) = LonN(LonN<0)+360;                                            % Transform new longitude to <0,360) system
 r = find(abs(diff(LonI(1,:)))==max(abs(diff(LonI(1,:)))));                  % find the point of discontinuity, e.g. ...,359,1,2...               
@@ -41,21 +73,23 @@ DataI = horzcat(DataI(:,end),DataI,DataI(:,1));                             % ad
 DataN = interp2(LonI,LatI,DataI,LonN,LatN);                                 % interpolate data (linear) => no extrapolation/NaN between 359 an 1 deg
 clear LonI LatI DataI diffLonI r
 %% Identify areas on ocean/continent
-if continent == 1
-    load('mGlobe_DATA_OceanGrid.mat');                                        % load auxiliary grid of oceans
-    [oceans.lon,oceans.lat] = meshgrid(oceans.lon,oceans.lat);
-    oceans.lon(oceans.lon<0) = oceans.lon(oceans.lon<0) + 360;              % Transform ocean grid longitude to <0,360) system
-    oceans.lon = oceans.lon + 10;                                           % Shift Longitude by 10 deg
-    r = find(abs(diff(oceans.lon(1,:)))==max(abs(diff(oceans.lon(1,:)))));  % find the point of discontinuity, e.g. ...,359,1,2...               
-    oceans.lon = horzcat(oceans.lon(:,r+1:end),oceans.lon(:,1:r));          % Connect matrices to remove discontinuity
-    oceans.lat = horzcat(oceans.lat(:,r+1:end),oceans.lat(:,1:r));
-    oceans.id = horzcat(oceans.id(:,r+1:end),oceans.id(:,1:r));
-    oceans.id = oceans.id + 1;oceans.id(oceans.id~=1) = -1;                 % Switch ocean/continent = 1/0 to -1/1
-    DataID = interp2(oceans.lon,oceans.lat,oceans.id,LonN,LatN);            % Interpolate ID
-    DataID(DataID>0) = 1;DataID(DataID<=0) = -1;                            % Negative values for oceans, positive for continent
-    DataID(LatN<=-85.95) = 1;                                               % fixed continent = antarctica
-else 
-    DataID = [];
+if ~ischar(continent)
+    if continent == 1
+        load('mGlobe_DATA_OceanGrid.mat');                                        % load auxiliary grid of oceans
+        [oceans.lon,oceans.lat] = meshgrid(oceans.lon,oceans.lat);
+        oceans.lon(oceans.lon<0) = oceans.lon(oceans.lon<0) + 360;              % Transform ocean grid longitude to <0,360) system
+        oceans.lon = oceans.lon + 10;                                           % Shift Longitude by 10 deg
+        r = find(abs(diff(oceans.lon(1,:)))==max(abs(diff(oceans.lon(1,:)))));  % find the point of discontinuity, e.g. ...,359,1,2...               
+        oceans.lon = horzcat(oceans.lon(:,r+1:end),oceans.lon(:,1:r));          % Connect matrices to remove discontinuity
+        oceans.lat = horzcat(oceans.lat(:,r+1:end),oceans.lat(:,1:r));
+        oceans.id = horzcat(oceans.id(:,r+1:end),oceans.id(:,1:r));
+        oceans.id = oceans.id + 1;oceans.id(oceans.id~=1) = -1;                 % Switch ocean/continent = 1/0 to -1/1
+        DataID = interp2(oceans.lon,oceans.lat,oceans.id,LonN,LatN);            % Interpolate ID
+        DataID(DataID>0) = 1;DataID(DataID<=0) = -1;                            % Negative values for oceans, positive for continent
+        DataID(LatN<=-85.95) = 1;                                               % fixed continent = antarctica
+    else 
+        DataID = [];
+    end
 end
 end
 
